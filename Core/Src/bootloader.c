@@ -14,6 +14,13 @@
 
 #include "bootloader.h"
 
+typedef enum {
+	STATUS_OK,
+	STATUS_FLASH_ERROR,
+	STATUS_TIMEOUT,
+	STATUS_CANCEL
+} tStatus;
+
 uint8_t rx_buffer[PACKET_SIZE_1024 + 5]; // Буфер для пакета
 
 // флаги, выставляемые в прерываниях
@@ -77,7 +84,7 @@ void UART_SendByte(uint8_t data) {
     HAL_UART_Transmit(&huart2, &data, 1, HAL_MAX_DELAY);
 }
 
-uint8_t Ymodem_Run() {
+tStatus Ymodem_Run() {
     uint32_t flash_address = FLASH_APP_ADDRESS;
     uint8_t header = 0;
 
@@ -94,7 +101,7 @@ uint8_t Ymodem_Run() {
     	}
 
     	if (tim2_event_counter > 3) {
-    		return 2;
+    		return STATUS_TIMEOUT;
     	}
 
     	if (uart2_event_flag) {
@@ -103,7 +110,7 @@ uint8_t Ymodem_Run() {
         	if (header == YMODEM_ACK) {
         		break;
         	} else if (header == YMODEM_CAN) {
-        		return 1;
+        		return STATUS_CANCEL;
         	} else {
         		HAL_UART_Receive_IT(&huart2, &header, 1);
         	}
@@ -114,7 +121,7 @@ uint8_t Ymodem_Run() {
 
     // Очистка памяти (48 кБ)
     if (Flash_Erase(flash_address, 0xC000)) {
-    	return 4;
+    	return STATUS_FLASH_ERROR;
     }
 
     // Ожидаем передачу файла (посылаем 'C')
@@ -169,10 +176,10 @@ uint8_t Ymodem_Run() {
             break;
         }
         else if (header == YMODEM_CAN) {
-            return 3; // cancel
+            return STATUS_CANCEL;
         }
     }
-    return 0; // OK
+    return STATUS_OK;
 }
 
 // Инициализация
@@ -183,11 +190,11 @@ void BootloaderInit() {
 
 // Полная обработка процессов
 void BootloaderRun() {
-	int result = 0;
-	result = Ymodem_Run();
+
+	tStatus result = Ymodem_Run();
 
 	// Если прошивка будет принята некорректно, то к основной программе не переходим
-	if (result != 0) {
+	if (result == STATUS_FLASH_ERROR) {
 		while(1);
 	}
 	HAL_UART_MspDeInit(&huart2);
