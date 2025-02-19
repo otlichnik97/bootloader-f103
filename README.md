@@ -12,4 +12,4 @@
 Репозиторий с тестовой прошивкой для проверки загрузчика.  
 Ссылкаhttps://github.com/otlichnik97/test-app-for-bootloader  
 Сначала прошиваем в МК загрузчик с помощью ST-Link. А затем специальной программой загружаем тестовую прошивку. Загружать нужно .bin файл.  
-Ссылка: https://github.com/otlichnik97/Firmware_Updater/  
+Ссылка: https://github.com/otlichnik97/Firmware_Updater/releases
